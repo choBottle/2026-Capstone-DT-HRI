@@ -8,7 +8,7 @@
 - [ ] Robomaster S1을 이용하여 python으로 어디까지 조작이 가능한지 파악하는 것
 
 ### 개인별 To-Do
-- **잔나영 (AI/Perception & Robot Compute, 파트 리더)**
+- **진나영 (AI/Perception & Robot Compute, 파트 리더)**
     - ex) 장애물 인식 파이프라인 후보 선정(카메라/라이다) + 입력/출력 스펙 정리
 
 - **조병현, 김현우 (Unity 디지털 트윈/가상환경, 파트 리더: 주마다 변경)**
