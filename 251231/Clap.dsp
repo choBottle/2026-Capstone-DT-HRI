@@ -1,5 +1,6 @@
 <dji><attribute><creation_date>2025/12/31</creation_date><sign>4a25913885988ad7</sign><modify_time>12/31/2025 2:47:34 PM</modify_time><guid>eeb4138d51de44b394b8807a5ceb0326</guid><creator>Anonymous</creator><firmware_version_dependency>00.00.0000</firmware_version_dependency><title>Clap</title><code_type>python</code_type><app_min_version></app_min_version><app_max_version></app_max_version></attribute><audio-list /><code><python_code><![CDATA[def start():
-    # 1. 초기 설정
+# 박수 소리를 인식하여 특정 동작을 수행하는 코드, 박수 두 번은 전진, 세 번은 발사    
+# 1. 초기 설정
     robot_ctrl.set_mode(rm_define.robot_mode_free)
     
     # [중요] 박수 인식 기능 켜기
@@ -48,4 +49,5 @@ def sound_recognized_applause_thrice(msg):
     time.sleep(0.5)
     
     # 3. 복귀 (파란색)
+
     led_ctrl.set_top_led(rm_define.armor_top_all, 0, 0, 255, rm_define.effect_always_on)]]></python_code><scratch_description><![CDATA[]]></scratch_description></code></dji>
