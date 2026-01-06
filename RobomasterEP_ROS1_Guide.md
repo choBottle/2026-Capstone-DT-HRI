@@ -1,15 +1,15 @@
-```markdown
 # ROS & Docker를 활용한 RoboMaster EP 제어 가이드
 
-[cite_start]이 문서는 **Ubuntu 22.04 (ROS 2 환경)**에서 **Docker**를 사용하여 호환성 문제 없이 **ROS 1 (Noetic)** 환경을 구축하고, **RoboMaster EP**를 안전하게 제어(Watchdog 포함)하기 위한 전체 절차를 다룹니다. [cite: 1]
+이 문서는 **Ubuntu 22.04 (ROS 2 환경)**에서 **Docker**를 사용하여 호환성 문제 없이 **ROS 1 (Noetic)** 환경을 구축하고, **RoboMaster EP**를 안전하게 제어(Watchdog 포함)하기 위한 전체 절차를 다룹니다.
 
 ---
 
 ## 1단계: 도커(Docker) 설치 및 설정 (Host PC)
 
-[cite_start]우분투 노트북(Host)에 도커를 설치합니다. [cite: 2]
+우분투 노트북(Host)에 도커를 설치합니다.
 
-1. [cite_start]**도커 설치 및 권한 부여:** [cite: 3]
+1. **도커 설치 및 권한 부여:**
+   
    ```bash
    # 터미널 실행 (Ctrl+Alt+T)
    sudo apt update
@@ -17,8 +17,7 @@
    
    # 현재 사용자에게 도커 권한 부여 (sudo 없이 쓰기 위해)
    sudo usermod -aG docker $USER
-
-```
+   ```
 
 2. **권한 적용:**
 로그아웃 후 다시 로그인하거나, 아래 명령어로 그룹 권한을 즉시 적용합니다. 
@@ -38,8 +37,7 @@ newgrp docker
 
 ROS Noetic이 설치된 가상 환경(컨테이너)을 만들고 필수 라이브러리를 설치합니다. 
 
-1. 
-**컨테이너 생성 및 접속:** `--net=host`: 노트북의 Wi-Fi를 공유하기 위한 필수 옵션입니다. 
+1. **컨테이너 생성 및 접속:** `--net=host`: 노트북의 Wi-Fi를 공유하기 위한 필수 옵션입니다. 
 
 
 ```bash
@@ -51,8 +49,7 @@ docker run -it --net=host --name roboros osrf/ros:noetic-desktop-full bash
 (이제 터미널 프롬프트가 `root@...`로 바뀝니다. 여기는 도커 내부입니다.) 
 
 
-2. 
-**필수 도구 및 라이브러리 설치:** 
+2. **필수 도구 및 라이브러리 설치:** 
 
 
 ```bash
@@ -77,8 +74,7 @@ apt install ros-noetic-teleop-twist-keyboard -y
 
 로봇과 ROS를 연결하는 '브릿지 프로그램'을 만듭니다. 
 
-1. 
-**워크스페이스 및 패키지 생성:** 
+1. **워크스페이스 및 패키지 생성:** 
 
 
 ```bash
@@ -89,8 +85,7 @@ catkin_create_pkg robomaster_driver std_msgs rospy geometry_msgs
 ```
 
 
-2. 
-**드라이버 코드 작성 (driver.py):** 
+2. **드라이버 코드 작성 (driver.py):** 
 
 
 ```bash
@@ -164,8 +159,7 @@ if __name__ == '__main__':
 (저장: `Ctrl+O` -> `Enter` -> `Ctrl+X`) 
 
 
-3. 
-**빌드 및 권한 설정:** 
+3. **빌드 및 권한 설정:** 
 
 
 ```bash
