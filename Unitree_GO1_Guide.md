@@ -32,7 +32,7 @@ sudo apt install -y libpthread-stubs0-dev
 
 ---
 
-## 2) 네트워크 확인(“이 단계가 되면 70% 끝난 거”)
+## 2) 네트워크 확인
 
 ### 2-1) 내 PC IP 확인
 
@@ -54,7 +54,7 @@ ping <GO1_IP>
 
 ---
 
-## 3) SDK 설치(클론) — “여기서부터가 sdk 설치 부분”
+## 3) SDK 설치(클론)
 
 ### 3-1) repo 준비
 
@@ -111,7 +111,7 @@ sudo apt install -y libboost-dev
 
 ## 7)다음 단계
 
-### 루트 A) “ROS 없이” 내가 짠 C++ 코드 실행 (가장 쉬움)
+### 루트 A) “ROS 없이” 내가 짠 C++ 코드 실행
 
 * 네 코드가 SDK 기반 C++이면
   `unitree_legged_sdk` 안에 소스 추가 → `CMakeLists.txt`에 타겟 추가 → `build`에서 빌드/실행
@@ -125,10 +125,8 @@ sudo apt install -y libboost-dev
 
 ---
 
-## 8) 지금 단계에서 “딱 필요한 체크리스트”
+## 8)체크리스트
 
-아래 3개가 “성공 기준”이야.
-
-1. `./example_velocity` 같은 예제가 실행됨
-2. PC ↔ GO1 ping 됨
-3. `boost/shared_ptr.hpp` 오류 없음 (Boost 설치됨)
+1. `./example_velocity` 같은 예제가 실행
+2. PC ↔ GO1 ping 
+3. `boost/shared_ptr.hpp` 오류 없음
