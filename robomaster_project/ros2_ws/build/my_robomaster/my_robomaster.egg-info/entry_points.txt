@@ -1,0 +1,3 @@
+[console_scripts]
+basic_move = my_robomaster.basic_move:main
+
