@@ -148,3 +148,29 @@ if __name__ == '__main__':
 ```bash
 python main.py
 ```
+---
+
+## [재접속]
+
+종료 후 재접속할 때 입력 순서
+아래 명령어는 VSCode 내 터미널에서 입력해야 함
+
+## 1. 프로젝트 폴더로 이동
+```bash
+cd ~/robomaster_project
+```
+
+## 2. 가상환경 활성화
+```bash
+source venv/bin/activate
+```
+
+## 3. 방화벽 끄기
+```bash
+sudo ufw disable
+```
+
+## 4. 코드 실행
+```bash
+python main.py
+```
