@@ -88,6 +88,7 @@ def main(args=None):
 ```
 
 ### 3.3 실행 파일 등록 (`setup.py`)
+src/my_robomaster/setup.py 파일의 entry_points 섹션을 다음과 같이 수정합니다.
 `entry_points` 섹션 수정:
 ```python
     entry_points={
@@ -98,10 +99,23 @@ def main(args=None):
 ```
 
 ## 4. 빌드 및 실행 (Build & Run)
+### 4.1 패키지 빌드
 ```bash
 cd /root/robomaster_project/ros2_ws
 source /opt/ros/foxy/setup.bash
+
+# 빌드 수행
 colcon build --packages-select my_robomaster --symlink-install
 source install/setup.bash
+```
+### 4.2 노드 실행
+```bash
+# 로봇이 켜져 있고 네트워크에 연결된 상태에서 실행
 ros2 run my_robomaster basic_move
 ```
+## 5. 트러블슈팅 (Troubleshooting)
+1. No executable found: setup.py 수정 후 반드시 colcon build를 다시 수행하고 source install/setup.bash를 실행해야 함.
+
+2. Connection Timeout: 컨테이너 실행 시 --net=host 옵션이 빠졌는지 확인하고, 로봇의 IP와 호스트 PC의 IP 대역이 일치하는지 점검.
+
+3. ModuleNotFoundError: Docker 내부에서 pip install robomaster가 정상적으로 완료되었는지 확인.
