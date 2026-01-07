@@ -15,8 +15,26 @@ sudo apt update && sudo apt install docker.io -y
 sudo usermod -aG docker $USER
 newgrp docker
 ```
+### 2.2 Docker 설치 및 권한 설정
+작업 디렉토리(~/robomaster_project)에 아래 내용으로 Dockerfile을 생성합니다.
+```Dokerfile
+FROM osrf/ros:foxy-desktop
 
-### 2.2 Docker 이미지 빌드 및 실행
+# 필수 도구 및 Python 라이브러리 설치
+RUN apt-get update && apt-get install -y \
+    python3-pip python3-colcon-common-extensions \
+    git wget unzip && rm -rf /var/lib/apt/lists/*
+
+# RoboMaster SDK 설치
+RUN pip3 install --upgrade pip
+RUN pip3 install robomaster setuptools==58.2.0
+
+WORKDIR /root/robomaster_project
+RUN echo "source /opt/ros/foxy/setup.bash" >> ~/.bashrc
+```
+
+
+### 2.3 Docker 이미지 빌드 및 실행
 작업 디렉토리(`~/robomaster_project`)에서 실행합니다.
 ```bash
 # 이미지 빌드 (Dockerfile이 있는 위치에서)
