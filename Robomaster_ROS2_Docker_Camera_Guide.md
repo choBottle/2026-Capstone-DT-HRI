@@ -149,8 +149,8 @@ cd /root/robomaster_camera/ros2_ws/src/my_robomaster/my_robomaster
 nano camera_driver.py
 ```
 
-### 3.2 제어 소스 코드 작성 (`basic_move.py`)
-`ros2_ws/src/my_robomaster/my_robomaster/basic_move.py` 파일 생성:
+### 3.2 제어 소스 코드 작성 (`camera_driver.py`)
+`ros2_ws/src/my_robomaster/my_robomaster/camera_driver.py` 파일 생성:
 ```python
 import rclpy
 from rclpy.node import Node
