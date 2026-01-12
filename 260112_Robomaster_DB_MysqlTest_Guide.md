@@ -1,4 +1,4 @@
-# [Manual] 로봇-서버-DB 데이터 파이프라인 구축 및 연동
+#[Manual] 로봇-서버-DB 데이터 파이프라인 구축 및 연동
 
 이 문서는 캡스톤 디자인 프로젝트의 일환으로 **로봇(Client) - 서버(Flask) - 데이터베이스(MySQL) 간의 양방향 통신 및 로그 저장 시스템** 구축 과정을 기술합니다.  
 
@@ -619,5 +619,426 @@ mysql> SELECT * FROM CommandLogs;
 
 
 
+```
+
+---------
+
+## 6. 소켓 연결으로 변경 및 검증
+
+기존의 flask를 이용한 http 연결 대신, Socket을 이용한 통신으로 방법을 변경하였음.
+
+1. pip install python-socketio eventlet
+- 서버 내 가상환경에 필요한 라이브러리 다운로드.
+
+2. server_socket.py 코드 작성.server_app.py가 있는 위치에 새 파일을 만들기.
+```
+import socketio
+import eventlet
+import pymysql
+import json
+from datetime import datetime
+
+# Socket.io 서버 생성 (CORS 허용)
+sio = socketio.Server(cors_allowed_origins='*')
+app = socketio.WSGIApp(sio)
+
+# DB 설정 (기존과 동일)
+DB_CONFIG = {
+    'host': '127.0.0.1',
+    'port': 7858,
+    'user': 'robot_user',
+    'password': 'robot_password_1234',
+    'db': 'robot_capstone',
+    'charset': 'utf8mb4',
+    'cursorclass': pymysql.cursors.DictCursor
+}
+
+def get_db():
+    return pymysql.connect(**DB_CONFIG)
+
+# [이벤트 1] 연결 감지
+@sio.event
+def connect(sid, environ):
+    print(f"✅ 클라이언트 연결됨 (SID: {sid})")
+
+# [이벤트 2] 연결 해제 감지
+@sio.event
+def disconnect(sid):
+    print(f"❌ 클라이언트 연결 해제 (SID: {sid})")
+
+# [이벤트 3] 로봇 로그인/상태 보고 (기존 /robot/status 대응)
+@sio.on('robot_login')
+def handle_robot_login(sid, data):
+    # data = {'serial': '...', 'status': 'Active'}
+    serial = data.get('serial', 'Unknown')
+    status = data.get('status', 'Idle')
+    # 소켓은 IP를 environ에서 가져와야 함 (참고용)
+    # 실제 운영에선 environ 접근이 까다로울 수 있어 로봇이 보내주는게 나을수도 있음
+    ip_addr = 'Socket_Connection' 
+
+    print(f"📩 [Login] {serial} ({status})")
+
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # 로봇 존재 확인
+        sql_check = "SELECT robot_id FROM Robots WHERE description = %s"
+        cursor.execute(sql_check, (serial,))
+        result = cursor.fetchone()
+
+        if result:
+            sql_update = "UPDATE Robots SET status=%s WHERE description=%s"
+            cursor.execute(sql_update, (status, serial))
+        else:
+            sql_insert = "INSERT INTO Robots (model_type, ip_address, status, description) VALUES ('EP01', %s, %s, %s)"
+            cursor.execute(sql_insert, (ip_addr, status, serial))
+            print(f"✨ 신규 로봇 등록: {serial}")
+
+        conn.commit()
+        conn.close()
+        # 로봇에게 잘 처리됐다고 응답
+        sio.emit('server_response', {'msg': 'Login OK'}, room=sid)
+        
+    except Exception as e:
+        print(f"⚠️ DB Error: {e}")
+
+# [이벤트 4] 로그 저장 (기존 /robot/log 대응)
+@sio.on('log_command')
+def handle_log_command(sid, data):
+    # data = {'command_type': 'Move', 'result': 'Success', 'session_id': 1}
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        cmd_type = data.get('command_type')
+        payload = json.dumps({"result": data.get('result')}, ensure_ascii=False)
+        session_id = data.get('session_id', 1) # 세션 ID는 일단 1로 고정 (테스트용)
+
+        sql = "INSERT INTO CommandLogs (session_id, command_type, payload) VALUES (%s, %s, %s)"
+        cursor.execute(sql, (session_id, cmd_type, payload))
+        
+        conn.commit()
+        conn.close()
+        print(f"📝 [Log] {cmd_type} 저장 완료")
+        
+    except Exception as e:
+        print(f"⚠️ Log Error: {e}")
+
+if __name__ == '__main__':
+    print("🚀 Socket.io 서버 시작 (Port: 5000)")
+    # eventlet을 사용하여 WSGI 서버 실행 (고성능)
+    eventlet.wsgi.server(eventlet.listen(('0.0.0.0', 5000)), app)
+```
+
+3. ROS2 소켓 노드 구현 (robot_socket_node.py)
+- 로봇(도커 컨테이너)에 들어갈 코드입니다. HTTP requests 대신 python-socketio[client]를 사용함.
+```
+pip install "python-socketio[client]"
+```
+
+**robot_socket_node.py** 작성
+
+```
+import rclpy
+from rclpy.node import Node
+import socketio
+import json
+import time
+from robomaster import robot
+
+# 서버 주소 (서버 IP로 변경 필수)
+SERVER_URL = 'http://210.110.250.33:5000' 
+
+class RobotSocketNode(Node):
+    def __init__(self):
+        super().__init__('robot_socket_node')
+        self.get_logger().info('>>> 로봇 소켓 노드 시작')
+
+        # 1. SocketIO 클라이언트 초기화
+        self.sio = socketio.Client()
+        self.setup_socket_events()
+
+        # 2. 로봇 하드웨어 연결
+        self.ep_robot = robot.Robot()
+        try:
+            self.ep_robot.initialize(conn_type="sta")
+            self.robot_sn = self.ep_robot.get_sn() or "SOCKET_TEST_BOT"
+            self.get_logger().info(f'>>> 로봇 하드웨어 연결됨 (SN: {self.robot_sn})')
+        except Exception as e:
+            self.get_logger().error(f'로봇 연결 실패: {e}')
+            self.robot_sn = "Simulated_SN" # 테스트용
+
+        # 3. 서버 연결 시도
+        try:
+            self.sio.connect(SERVER_URL)
+            self.get_logger().info('>>> 서버 소켓 연결 성공!')
+        except Exception as e:
+            self.get_logger().error(f'서버 연결 실패: {e}')
+            return
+
+        # 4. 시나리오 실행 (타이머 대신 즉시 실행 예시)
+        self.run_scenario()
+
+    def setup_socket_events(self):
+        # 서버에서 온 메시지 수신
+        @self.sio.event
+        def connect():
+            self.get_logger().info("소켓 연결됨")
+        
+        @self.sio.event
+        def server_response(data):
+            self.get_logger().info(f"서버 응답: {data}")
+
+        @self.sio.event
+        def disconnect():
+            self.get_logger().warn("소켓 연결 끊김")
+
+    def run_scenario(self):
+        # [A] 로그인 (상태 보고)
+        self.get_logger().info('로그인 패킷 전송...')
+        self.sio.emit('robot_login', {'serial': self.robot_sn, 'status': 'Active'})
+
+        # [B] 동작 수행 (1m 전진)
+        try:
+            self.get_logger().info('1m 전진 중...')
+            if self.robot_sn != "Simulated_SN":
+                self.ep_robot.chassis.move(x=1.0, y=0, z=0, xy_speed=0.5).wait_for_completed()
+            else:
+                time.sleep(2) # 시뮬레이션
+
+            # [C] 로그 전송 (HTTP POST 대신 emit 사용)
+            self.sio.emit('log_command', {
+                'command_type': 'Move_1m_Socket',
+                'result': 'Success',
+                'session_id': 1
+            })
+            self.get_logger().info('로그 전송 완료')
+
+        except Exception as e:
+            self.sio.emit('log_command', {'command_type': 'Move_1m_Socket', 'result': f'Error: {e}'})
+
+        # [D] 종료 보고
+        time.sleep(1)
+        self.sio.emit('robot_login', {'serial': self.robot_sn, 'status': 'Idle'})
+        self.get_logger().info('시나리오 종료')
+
+    def destroy_node(self):
+        if self.sio.connected:
+            self.sio.disconnect()
+        try:
+            self.ep_robot.close()
+        except: pass
+        super().destroy_node()
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = RobotSocketNode()
+    try:
+        rclpy.spin_once(node, timeout_sec=10) # 10초 대기 후 종료
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+```
+
+4. setup.py 수정
+```
+cd /root/robomaster_camera/ros2_ws/src/my_robomaster
+nano setup.py
+
+entry_points={
+        'console_scripts': [
+            'robot_controller = my_robomaster.robot_controller:main', # 기존꺼
+            'socket_node = my_robomaster.robot_socket_node:main',     # [신규 추가]
+        ],
+    },
+```
+
+5. 이후 빌드, 실행.
+```
+cd /root/robomaster_camera/ros2_ws
+colcon build --symlink-install
+source install/setup.bash
+
+ros2 run my_robomaster socket_node
+```
+
+6. 최종 검증 방법
+6-1. 서버 실행: 서버 터미널에서 python3 server_socket.py를 실행합니다. "🚀 Socket.io 서버 시작" 메시지가 떠야 함.
+6-2. 로봇 실행: 로봇 컨테이너 터미널에서 ros2 run my_robomaster socket_node를 실행.
+6-3. 서버 로그: ✅ 클라이언트 연결됨 -> 📩 [Login] ... -> 📝 [Log] Move_1m_Socket 저장 완료 순서로 뜨는지 확인.
+6-4. DB 확인: mysql> SELECT * FROM CommandLogs; 했을 때 command_type이 Move_1m_Socket인 데이터가 들어와 있으면 성공.
+
+
+---------
+
+## 7. 라즈베리파이 3 소켓 연결
+
+기존 로봇 -> 노트북 -> 서버 -> DB 저장 단계를 로봇 -> 라즈베리파이 3 -> 노트북 -> 서버 -> DB 순으로 저장되게 함.
+
+1. 라즈베리파이 3 접속 및 구동
+```
+ssh ubuntu3@ubuntu3.local
+
+sudo apt-get update
+sudo apt-get install -y docker.io
+sudo systemctl enable --now docker
+
+# 현재 사용자를 docker 그룹에 추가
+sudo usermod -aG docker $USER
+
+# Dockerfile 추가 및 이미지 생성. 이후 컨테이너 안에 들어가기.
+
+------Dockerfile
+FROM ros:foxy
+
+# 필수 도구 및 Python 라이브러리 설치
+RUN apt-get update && apt-get install -y \
+    python3-pip python3-colcon-common-extensions \
+    git wget unzip && rm -rf /var/lib/apt/lists/*
+
+# RoboMaster SDK 설치
+RUN pip3 install --upgrade pip
+RUN pip3 install robomaster setuptools==58.2.0 "python-socketio[client]" requests
+
+WORKDIR /root/robomaster_project
+RUN echo "source /opt/ros/foxy/setup.bash" >> ~/.bashrc
+------
+
+## 환경 적용 및 실행
+source install/setup.bash
+ros2 run my_robomaster basic_move
+
+docker run -it --rm \
+  --net=host \
+  -v $(pwd)/ros2_ws:/ros2_ws \
+  rm_node /bin/bash
+
+
+
+# 이후 디렉토리 생성 및 기본 패키지 설치
+mkdir -p /root/robomaster_project/ros2_ws/src
+cd /root/robomaster_project/ros2_ws/src
+ros2 pkg create --build-type ament_python my_robomaster --dependencies rclpy geometry_msgs
+
+apt-get update
+apt-get install nano
+
+
+# 파일 작성, setup.py에 반영 이후 빌드, 실행.
+nano robot_socket_node_ras.py / set.py 참고.
+
+## 워크스페이스 이동 및 환경 로드
+cd /ros2_ws
+source /opt/ros/foxy/setup.bash
+
+## 패키지 빌드 (RPi 3 메모리 보호를 위해 병렬 작업 제한)
+colcon build --packages-select my_robomaster --parallel-workers 1
+
+## 환경 적용 및 실행
+source install/setup.bash
+ros2 run my_robomaster socket_node
+
+
+```
+
+서버 파일 (server_socket.py)이 켜져있고, 노트북과 로봇, 라즈베리파이가 동일한 와이파이에 연결되어있는 환경에서
+
+로봇 > 라즈베리파이 > 노트북 > 서버 > DB 연동 및 저장 구현 성공하였음.
+
+이하 로그 첨부함. (ModuleNotFoundError: No module named 'cv2'은 임시방편으로 컨테이너에 pip3 install opencv-python-headless 설치로 해결. 추후 영구적 해결법인 (RUN pip3 install robomaster setuptools==58.2.0 "python-socketio[client]" requests opencv-python-headless)을 반영할 것.
+
+```
+oot@ubuntu3:/ros2_ws# ros2 run my_robomaster socket_node
+
+[INFO] [1768208882.863245640] [robot_socket_node]: >>> 로봇 소켓 노드 시작
+
+[INFO] [1768208885.671968115] [robot_socket_node]: >>> 로봇 하드웨어 연결됨 (SN: 3JKCK980030E3K)
+
+[INFO] [1768208885.790490823] [robot_socket_node]: 소켓 연결됨
+
+[INFO] [1768208885.797586568] [robot_socket_node]: >>> 서버 소켓 연결 성공!
+
+[INFO] [1768208885.804254197] [robot_socket_node]: 로그인 패킷 전송...
+
+[INFO] [1768208885.812042272] [robot_socket_node]: 1m 전진 중...
+
+[INFO] [1768208885.830339462] [robot_socket_node]: 서버 응답: {'msg': 'Login OK'}
+
+[INFO] [1768208900.871935861] [robot_socket_node]: 로그 전송 완료
+
+[INFO] [1768208901.883754772] [robot_socket_node]: 시나리오 종료
+
+[INFO] [1768208901.894254044] [robot_socket_node]: 서버 응답: {'msg': 'Login OK'}
+
+[WARN] [1768208911.899360587] [robot_socket_node]: 소켓 연결 끊김
+
+root@ubuntu3:/ros2_ws#  
+```
+
+```
+ venv) $ python server_socket.py
+
+🚀 Socket.io 서버 시작 (Port: 5000)
+
+(2139307) wsgi starting up on http://0.0.0.0:5000
+
+(2139307) accepted ('203.230.104.168', 37844)
+
+203.230.104.168 - - [12/Jan/2026 09:08:05] "GET /socket.io/?transport=polling&EIO=4&t=1768208885.6730917 HTTP/1.1" 200 300 0.000730
+
+(2139307) accepted ('203.230.104.168', 37858)
+
+✅ 클라이언트 연결됨 (SID: _200O1GGKsfyqOkxAAAB)
+
+📩 [Login] 3JKCK980030E3K (Active)
+
+📝 [Log] Move_1m_Socket 저장 완료
+
+📩 [Login] 3JKCK980030E3K (Idle)
+
+❌ 클라이언트 연결 해제 (SID: _200O1GGKsfyqOkxAAAB)
+
+203.230.104.168 - - [12/Jan/2026 09:08:31] "GET /socket.io/?transport=websocket&EIO=4&sid=3vyLcz9gXatPfaDsAAAA&t=1768208885.7054455 HTTP/1.1" 200 0 26.186545 
+```
+
+```
+ mysql> 
+
+mysql> SELECT * FROM Robots;
+
++----------+------------+-----------------+--------------+----------------------+
+
+| robot_id | model_type | ip_address      | status       | description          |
+
++----------+------------+-----------------+--------------+----------------------+
+
+|        1 | EP01       | 0.0.0.0         | Disconnected | Test_Bot_Placeholder |
+
+|        2 | EP01       | 203.230.104.168 | Active       | 3JKCK980030E3K       |
+
++----------+------------+-----------------+--------------+----------------------+
+
+2 rows in set (0.00 sec)
+
+
+mysql> SELECT * FROM Robots;
+
++----------+------------+-----------------+--------------+----------------------+
+
+| robot_id | model_type | ip_address      | status       | description          |
+
++----------+------------+-----------------+--------------+----------------------+
+
+|        1 | EP01       | 0.0.0.0         | Disconnected | Test_Bot_Placeholder |
+
+|        2 | EP01       | 203.230.104.168 | Idle         | 3JKCK980030E3K       |
+
++----------+------------+-----------------+--------------+----------------------+
+
+2 rows in set (0.00 sec) 
 ```
 
