@@ -945,6 +945,80 @@ ros2 run my_robomaster socket_node
 
 ```
 
+**robot_socket_node_ras.py**
+```
+import socketio
+import time
+import json
+from robomaster import robot
+
+# [중요] 노트북(서버)의 IP 주소로 변경하세요!
+SERVER_URL = 'http://192.168.50.84:5000' 
+
+# 1. 소켓 클라이언트 설정
+sio = socketio.Client()
+robot_sn = "RPi_Relay_Bot"
+
+@sio.event
+def connect():
+    print("✅ RPi: 서버에 연결됨!")
+
+@sio.event
+def disconnect():
+    print("❌ RPi: 서버 연결 끊김")
+
+@sio.event
+def server_response(data):
+    print(f"📩 서버 응답: {data}")
+
+def main():
+    print(">>> RPi 중계기 시작")
+    
+    # 2. 로봇 연결 (RPi <-> 로봇)
+    # RPi와 로봇이 같은 와이파이(랩실)에 있어야 함
+    ep_robot = robot.Robot()
+    try:
+        ep_robot.initialize(conn_type="sta")
+        global robot_sn
+        robot_sn = ep_robot.get_sn() or "RPi_Relay_Bot"
+        print(f">>> 로봇 하드웨어 연결 성공 (SN: {robot_sn})")
+    except Exception as e:
+        print(f"⚠️ 로봇 연결 실패 (시뮬레이션 모드): {e}")
+
+    # 3. 서버 연결 (RPi <-> 노트북)
+    try:
+        sio.connect(SERVER_URL)
+    except Exception as e:
+        print(f"⚠️ 서버 연결 실패 (IP 확인하세요): {e}")
+        return
+
+    # 4. 동작 시나리오 (로그인 -> 데이터 전송 -> 로그아웃)
+    # 로그인
+    sio.emit('robot_login', {'serial': robot_sn, 'status': 'Active'})
+    time.sleep(1)
+
+    # 데이터 전송 (가상 데이터)
+    print(">>> 데이터 전송 중...")
+    sio.emit('log_command', {
+        'command_type': 'RPi_Relay_Test',
+        'result': 'Success',
+        'session_id': 1
+    })
+
+    # 대기 (10초)
+    time.sleep(10)
+
+    # 로그아웃
+    sio.emit('robot_login', {'serial': robot_sn, 'status': 'Idle'})
+    print(">>> 종료")
+    sio.disconnect()
+    ep_robot.close()
+
+if __name__ == '__main__':
+    main()
+```
+
+
 서버 파일 (server_socket.py)이 켜져있고, 노트북과 로봇, 라즈베리파이가 동일한 와이파이에 연결되어있는 환경에서
 
 로봇 > 라즈베리파이 > 노트북 > 서버 > DB 연동 및 저장 구현 성공하였음.
