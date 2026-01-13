@@ -877,7 +877,7 @@ ros2 run my_robomaster socket_node
 
 ## 7. 라즈베리파이 3 소켓 연결
 
-기존 로봇 -> 노트북 -> 서버 -> DB 저장 단계를 로봇 -> 라즈베리파이 3 -> 노트북 -> 서버 -> DB 순으로 저장되게 함.
+기존 로봇 -> 노트북 -> 서버 -> DB 저장 단계를 로봇 -> 라즈베리파이 3 -> 서버 -> DB 순으로 저장되게 함.
 
 1. 라즈베리파이 3 접속 및 구동
 ```
@@ -952,8 +952,8 @@ import time
 import json
 from robomaster import robot
 
-# [중요] 노트북(서버)의 IP 주소로 변경하세요!
-SERVER_URL = 'http://192.168.50.84:5000' 
+# [중요] 랩실(서버)의 IP 주소로 변경하세요!
+SERVER_URL = 'http://210.110.250.33:5000' 
 
 # 1. 소켓 클라이언트 설정
 sio = socketio.Client()
