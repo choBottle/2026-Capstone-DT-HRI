@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  total_relay:
+    image: jny123/physical-ai-relay:latest
+    container_name: total_relay
+    network_mode: host  # UDP 브로드캐스트 수신을 위해 필수
+    restart: always
+    environment:
+      - SERVER_IP=192.168.50.39   # 노트북(서버) IP
+      - ROBOT_IP=192.168.50.31    # 현재 연결된 로봇(EP01) IP
+      # 향후 Go1 추가 시 환경변수 확장
+      # - GO1_IP=192.168.50.41

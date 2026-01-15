@@ -1,0 +1,28 @@
+# 연구 가이드 준수: Ubuntu 18.04 + ROS Melodic
+FROM ros:melodic-ros-base
+
+# 필수 빌드 도구 및 Unitree SDK 의존성 설치
+RUN apt-get update && apt-get install -y \
+    python-pip \
+    build-essential \
+    cmake \
+    git \
+    liblcm-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Socket.IO 클라이언트 설치 (Python 2.7 호환용)
+RUN pip install "python-socketio<5.0.0" "python-engineio<4.0.0"
+
+WORKDIR /app/catkin_ws/src
+# 가이드에 따라 SDK 및 패키지 클론
+RUN git clone https://github.com/unitreerobotics/unitree_legged_sdk.git && \
+    git clone https://github.com/unitreerobotics/unitree_ros_to_real.git
+
+WORKDIR /app/catkin_ws
+# 의존성 해결 및 빌드 (연구 가이드의 catkin_make 과정)
+RUN /bin/bash -c "source /opt/ros/melodic/setup.bash && catkin_make"
+
+COPY brain_worker.py .
+
+# 실행 시 ROS1 환경 소싱 후 워커 실행
+CMD ["/bin/bash", "-c", "source /app/catkin_ws/devel/setup.bash && python brain_worker.py"]

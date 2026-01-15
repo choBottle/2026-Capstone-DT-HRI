@@ -1,0 +1,21 @@
+# 가이드 기반 ROS2 Foxy 환경 구축
+FROM ros:foxy-ros-base
+
+WORKDIR /app
+
+# 시스템 의존성 및 DJI SDK 설치
+RUN apt-get update && apt-get install -y \
+    python3-pip \
+    libopencv-dev \
+    python3-opencv \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install --no-cache-dir \
+    robomaster \
+    python-socketio[client] \
+    eventlet \
+    psycopg2-binary
+
+COPY brain_worker.py .
+
+CMD ["python3", "-u", "brain_worker.py"]

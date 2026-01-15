@@ -1,0 +1,49 @@
+services:
+  main_server:
+    build:
+      context: ./main_server
+      dockerfile: Dockerfile.hub
+    container_name: hub_server
+    ports:
+      - "5000:5000"
+    networks:
+      - robot_net
+    # -u 옵션은 실시간 로그 출력을 보장합니다.
+    command: ["python3", "-u", "hub_server.py"]
+    environment:
+      - DB_HOST=db
+      - DB_NAME=robot_db
+      - DB_USER=admin
+      - DB_PASS=password123
+    depends_on:
+      - db
+
+  ep01_brain:
+    build:
+      context: ./server_brain/ep01_brain
+      dockerfile: Dockerfile.ep01
+    container_name: brain_ep01
+    network_mode: host 
+    environment:
+      - SERVER_URL=http://localhost:5000
+      - ROBOT_IP=192.168.50.130 
+    depends_on:
+      - main_server
+
+  db:
+    image: postgres:15-alpine
+    container_name: robot_db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password123
+      - POSTGRES_DB=robot_db
+    volumes:
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - robot_net
+
+networks:
+  robot_net:
+    driver: bridge

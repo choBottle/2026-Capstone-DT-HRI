@@ -1,0 +1,15 @@
+# 1. 아주 가벼운 파이썬 이미지를 베이스로 사용
+FROM python:3.9-slim-buster
+
+# 2. 작업 디렉토리 설정
+WORKDIR /app
+
+# 3. 필요한 라이브러리 설치 (requirements_relay.txt가 비어있어도 일단 실행)
+COPY requirements_relay.txt .
+RUN pip install --no-cache-dir -r requirements_relay.txt
+
+# 4. 소스 코드 복사
+COPY main_relay.py .
+
+# 5. 실행
+CMD ["python", "-u", "main_relay.py"]
