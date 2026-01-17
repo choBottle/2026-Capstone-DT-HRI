@@ -10,9 +10,9 @@
 
 ### 1. Power Supply와 로봇팔 본체를 연결한다
 
-### 2. Extender Box 상단과 로봇팔 본체를 IDC Cable로 연결한다
+### 2. Extender Box의 COMMUNICATION INTERFACE 부분과 로봇팔 본체를 IDC Cable로 연결한다
 
-### 3. Power Supply의 COMMUNICATION INTERFACE 부분과 컴퓨터를 USB Cable로 연결한다
+### 3. Extender Box의 USB 부분과 컴퓨터를 USB Cable로 연결한다
 
 * 여기까지 연결됐다면 전원을 켤 수 있고 컴퓨터 Wlkata Studio에서 인식이 된다
 * Wlkata Studio 왼쪽 상단 Device를 MT4/E4로 해야 인식이 되므로 주의
@@ -23,7 +23,7 @@
 
 ### 4-2. Metal Claw를 장착한 경우
 
-* Metal Claw에 있는 선을 Extender Box(상단 PUMP/GRIPPER PWM 부분)에 연결한다
+* Metal Claw에 연결되어 있는 선을 Extender Box(상단 PUMP/GRIPPER PWM 부분)에 연결한다
 
 ### 5. Wltaka Studio에서 조작을 시도해본다
 
@@ -43,4 +43,9 @@
 
 * https://youtu.be/aABIZw-NVqQ
 
-* ※ 문제가 생기지 않도록 한 동작을 완료하고 다음 동작을 테스트하기 전에 HOMING을 통해 로봇팔의 위치를 초기화하고 하는 것이 좋다
+---
+
+### 참고사항
+
+* 문제가 생기지 않도록 한 동작을 완료하고 다음 동작을 테스트하기 전에 HOMING을 통해 로봇팔의 위치를 초기화하고 하는 것이 좋다
+* 부품 명칭은 WLKATA MT4 Edu Kit Shipping List 종이에 있는 명칭을 그대로 사용하였으므로 해당 가이드 참고 시 해당 종이를 참고하여 수행하면 된다
