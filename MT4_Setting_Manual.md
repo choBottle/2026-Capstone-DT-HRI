@@ -48,38 +48,40 @@ Wlkata Studio 없이 리눅스(Ubuntu) 터미널 환경에서 파이썬 코드�
 **1. 시리얼 통신 라이브러리 설치**
 
    터미널을 열고 파이썬 시리얼 라이브러리를 설치합니다.
-   ```
+   
+   ```bash
    pip3 install pyserial
-
    ```
 
-**2. USB 포트 확인 및 충돌 해결 (중요)**
-    
-    Ubuntu에서는 로봇 연결 시 `brltty`(점자 디스플레이 드라이버)와 충돌하여 포트가 안 뜨는 경우가 많습니다.
+**2. USB 포트 확인 (중요)**
 
-    ```bash
-    ls /dev/ttyUSB*
-    # 또는
-    ls /dev/ttyACM*
+   Ubuntu에서는 로봇 연결 시 `brltty`(점자 디스플레이 드라이버)와 충돌하여 포트가 안 뜨는 경우가 많으므로 포트가 검색되지 않을 시 3번을 참고하시면 됩니다.
 
-    ```
+   ```bash
+   ls /dev/ttyUSB*
+   ```
+   또는
+   ```bash
+   ls /dev/ttyACM*
+   ```
 
-**포트가 검색되지 않을 경우 (Brltty 삭제):**
+**3. 포트가 검색되지 않을 경우 (Brltty 삭제):**
 
-    ```bash
-    sudo apt remove brltty
-    ```
+   ```bash
+   sudo apt remove brltty
+   ```
 
-    삭제 후 USB를 뽑았다가 다시 꽂으면 `/dev/ttyUSB0` 또는 `/dev/ttyACM0`이 정상적으로 인식됩니다.
+   삭제 후 USB를 뽑았다가 다시 꽂으면 `/dev/ttyUSB0` 또는 `/dev/ttyACM0`이 정상적으로 인식됩니다.
 
 
-**포트 접근 권한 부여**
-    매번 `sudo` 없이 코드를 실행하기 위해 권한을 허용합니다. (재부팅 시 초기화됨)
+**4. 포트 접근 권한 부여**
 
-    ```bash
-    # 본인의 포트 이름에 맞게 입력 (ttyUSB0 또는 ttyACM0)
-    sudo chmod 666 /dev/ttyUSB0
-    ```
+   매번 `sudo` 없이 코드를 실행하기 위해 권한을 허용합니다. (재부팅 시 초기화됨)
+   
+   ```bash
+   # 본인의 포트 이름에 맞게 입력 (ttyUSB0 또는 ttyACM0)
+   sudo chmod 666 /dev/ttyUSB0
+   ```
 
 
 ### 제어 코드 작성 (Python)
@@ -178,7 +180,6 @@ except Exception as e:
 
 ```bash
 python3 robot_control.py
-
 ```
 
 ### 자주 발생하는 에러(Troubleshooting)
@@ -186,14 +187,9 @@ python3 robot_control.py
 | 에러 메시지 / 현상 | 원인 및 해결 방법 |
 | --- | --- |
 | **Permission denied** | 포트 접근 권한이 없습니다. `sudo chmod 666 /dev/ttyUSB0`을 입력하세요. |
-| **Error, Soft limit: X (or Y)** | 1. `M20` 명령어가 누락되어 로봇이 각도 모드로 인식한 경우입니다.<br>
-
-<br>2. 이동하려는 좌표가 로봇의 물리적 한계를 벗어났습니다. (예: `G0 X0 Y0 Z0`) |
+| **Error, Soft limit: X (or Y)** | 1. `M20` 명령어가 누락되어 로봇이 각도 모드로 인식한 경우입니다.<br>2. 이동하려는 좌표가 로봇의 물리적 한계를 벗어났습니다. (예: `G0 X0 Y0 Z0`) |
 | **Device not found** | `brltty` 프로그램 충돌입니다. `sudo apt remove brltty` 후 재연결하세요. |
-| **그리퍼가 꿈쩍도 안 함** | 코드의 `M3 S` 값이 올바른지 확인하세요.<br>
-
-<br>(Pneumatic: S0/S1000, Servo: S40/S60) |
-
+| **그리퍼가 움직이지 않음** | 코드의 `M3 S` 값이 올바른지 확인하세요.<br>(Pneumatic: S0/S1000, Servo: S40/S60) |
 ---
 
 ### 참고사항
