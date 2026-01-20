@@ -3,7 +3,7 @@
 
 ## 사전 준비
 
-* 로봇 팔 본체와 집게 체결 : 체결부분에 있는 조그만한 나사 조이기 (드라이버는 EP01 몸체 조립했을 때 썼던 거 쓰면 됨)
+* 로봇 팔 본체와 집게 체결 : 체결부분에 있는 조그만한 나사 조이기
 * Wlkata Studio와 드라이버를 컴퓨터에 설치하기
 ([다운로드 링크](https://www.wlkata.com/pages/download-center?srsltid=AfmBOopjzXUAv34lXLxKYnwVsh8p6IMGio8ZRPhKMk-1xZnuvKThTezV))
 * 로봇팔 본체 주위를 미리 비워두기 (충돌 대비)
@@ -29,9 +29,9 @@
 
 * COORD MODE는 5도씩 정밀하게 조작이 가능한데, X축, Y축, Z축 각각 해보고 잘 작동하는지 확인한다
 
-### 6-1. Two-Finger Soft Gripper or Suction Cup을 장착한 경우 (테스트 안해봄)
+### 6-1. Two-Finger Soft Gripper or Suction Cup을 장착한 경우
 
-* Wltaka Studio - 오른쪽 Motion Control - Tool에서 Pneumatic Tool을 선택하고 CTRL에서 원하는 작동이 잘 되는지 확인한다
+* Wltaka Studio - 오른쪽 Motion Control - Tool에서 Pneumatic Tool을 선택하고 CTRL에서 원하는 작동이 잘 되는지 확인한다 (펌프를 이용한 집게 열기/닫기, 물 빨아들이기)
 
 ### 6-2. Metal Claw를 장착한 경우
 
