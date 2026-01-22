@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ep01-template
+spec:
+  restartPolicy: Never
+  hostNetwork: true
+  containers:
+  - name: robot-control
+    image: jny123/brain-ep01:latest
+    imagePullPolicy: Always
+    env:
+    - name: ROBOT_IP
+      value: "placeholder"
+    - name: ROBOT_SN
+      value: "placeholder"
