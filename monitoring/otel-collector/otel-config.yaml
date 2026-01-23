@@ -1,0 +1,31 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317" # 외부 수신용 (유지)
+      http:
+        endpoint: "0.0.0.0:4318"
+
+exporters:
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+  otlp_http/loki: # 권장되는 이름인 otlp_http 사용
+    endpoint: "http://127.0.0.1:3100/otlp"
+    tls:
+      insecure: true
+  otlp_grpc/tempo: # 권장되는 이름인 otlp_grpc 사용
+    endpoint: "127.0.0.1:4320" # Tempo의 바뀐 포트로 전송
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      exporters: [prometheus]
+    logs:
+      receivers: [otlp]
+      exporters: [otlp_http/loki]
+    traces:
+      receivers: [otlp]
+      exporters: [otlp_grpc/tempo]

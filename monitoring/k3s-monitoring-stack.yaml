@@ -1,0 +1,91 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monitoring-stack
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: monitoring-stack
+  template:
+    metadata:
+      labels:
+        app: monitoring-stack
+    spec:
+      nodeSelector:
+        capacity: high
+      containers:
+      - name: grafana
+        image: grafana/grafana:latest
+        ports: [{containerPort: 3000}]
+        volumeMounts:
+        - name: config-volume
+          # Grafana는 이 경로 안의 모든 .yaml을 읽으므로 파일명을 dashboards.yaml로 매칭
+          mountPath: /etc/grafana/provisioning/datasources/dashboards.yaml
+          subPath: dashboards.yaml
+      - name: prometheus
+        image: prom/prometheus:latest
+        # 실행 인자 경로도 마운트 경로와 일치시킴
+        args: ["--config.file=/etc/prometheus/prometheus-config.yaml"]
+        ports: [{containerPort: 9090}]
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/prometheus/prometheus-config.yaml
+          subPath: prometheus-config.yaml
+      - name: loki
+        image: grafana/loki:latest
+        # Loki 설정 파일명 매칭
+        args: ["-config.file=/etc/loki/loki-config.yaml"]
+        ports: [{containerPort: 3100}]
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/loki/loki-config.yaml
+          subPath: loki-config.yaml
+      - name: tempo
+        image: grafana/tempo:latest
+        # Tempo 설정 파일명 매칭
+        args: ["-config.file=/etc/tempo/tempo-config.yaml"]
+        ports: [{containerPort: 3200}]
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/tempo/tempo-config.yaml
+          subPath: tempo-config.yaml
+      - name: otel-collector
+        image: otel/opentelemetry-collector-contrib:latest
+        args: ["--config=/etc/otel/otel-config.yaml"]
+        ports:
+          - containerPort: 4317
+          - containerPort: 8889
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/otel/otel-config.yaml
+          subPath: otel-config.yaml
+      volumes:
+      - name: config-volume
+        configMap:
+          name: monitoring-configs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: monitoring-service
+  namespace: monitoring
+spec:
+  type: NodePort
+  ports:
+    - name: grafana
+      port: 3000
+      targetPort: 3000
+      nodePort: 32000
+    - name: otel-otlp
+      port: 4317
+      targetPort: 4317
+      nodePort: 30417
+  selector:
+    app: monitoring-stack
