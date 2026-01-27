@@ -12,10 +12,13 @@ spec:
       labels:
         app: central-hub
     spec:
-      serviceAccountName: central-hub-sa  # 권한 연결
+      serviceAccountName: central-hub-sa
+      # [추가] 이 파드는 무조건 노트북(x86_64)에서만 실행되도록 설정
+      nodeSelector:
+        kubernetes.io/hostname: jin03-asus-tuf-dash-f15-fx516pr-fx516pr
       containers:
       - name: central-hub
-        image: jny123/central-hub:v7
+        image: jny123/central-hub:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 5000

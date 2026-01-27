@@ -1,20 +1,31 @@
-FROM ros:foxy-ros-base
+# 1. SDK 호환성을 위해 Python 3.8 Full 버전 유지
+FROM python:3.8
+
+# 2. OpenCV 및 SDK 구동에 필요한 시스템 라이브러리 설치
+# libgl1-mesa-glx와 libglib2.0-0이 cv2 로드 시 가장 중요합니다.
+RUN apt-get update && apt-get install -y \
+    gcc \
+    python3-dev \
+    libffi-dev \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# 시스템 라이브러리 업데이트 및 pip 설치
-RUN apt-get update && apt-get install -y \
-    python3-pip \
-    && rm -rf /var/lib/apt/lists/*
+# 3. 라이브러리 설치 순서 (의존성 꼬임 방지)
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir numpy==1.23.5 && \
+    pip install --no-cache-dir opencv-python-headless && \
+    pip install --no-cache-dir robomaster && \
+    pip install --no-cache-dir \
+    prometheus-client \
+    opentelemetry-api \
+    opentelemetry-sdk \
+    opentelemetry-exporter-otlp-proto-grpc
 
-# RoboMaster SDK 및 필수 의존성(OpenCV) 설치
-# opencv-python-headless는 GUI 기능 없이 라이브러리만 설치하므로 컨테이너 환경에 최적입니다.
-RUN pip3 install --no-cache-dir \
-    robomaster \
-    opencv-python-headless
-
-# 소스 복사
+# 4. 소스 복사 및 설정
 COPY control.py .
+ENV PYTHONUNBUFFERED=1
 
-# ROS 환경 로드 후 실행
-CMD ["/bin/bash", "-c", "source /opt/ros/foxy/setup.bash && python3 -u control.py"]
+CMD ["python", "control.py"]

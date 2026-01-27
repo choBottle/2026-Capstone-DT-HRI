@@ -2,13 +2,23 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: ep01-template
+  labels:
+    robot_type: "ep01" # [추가] 모니터링 필터링을 위한 라벨
+  annotations:
+    # [중요] Prometheus 자동 수집을 위한 설정
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
 spec:
   restartPolicy: Never
-  hostNetwork: true
+  hostNetwork: true # 로봇과 직접 통신을 위해 유지
   containers:
   - name: robot-control
     image: jny123/brain-ep01:latest
     imagePullPolicy: Always
+    # [추가] 메트릭 포트 명시
+    ports:
+    - containerPort: 8000
+      name: metrics
     env:
     - name: ROBOT_IP
       value: "placeholder"

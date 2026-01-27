@@ -1,0 +1,188 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: monitoring-configs
+  namespace: monitoring
+data:
+  otel-config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: "0.0.0.0:4317" # 로봇이 쏘는 데이터를 받는 관문 (유지)
+    exporters:
+      prometheus:
+        endpoint: "0.0.0.0:8889"
+      otlp_http/loki:
+        endpoint: "http://127.0.0.1:3100/loki/api/v1/push"
+        tls:
+          insecure: true
+      otlp/tempo:
+        endpoint: "127.0.0.1:4320" # [수정] Tempo의 새로운 포트로 전달
+        tls:
+          insecure: true
+    service:
+      pipelines:
+        metrics:
+          receivers: [otlp]
+          exporters: [prometheus]
+        logs:
+          receivers: [otlp]
+          exporters: [otlp_http/loki]
+        traces:
+          receivers: [otlp]
+          exporters: [otlp/tempo]
+  loki-config.yaml: |
+    auth_enabled: false
+    server:
+      http_listen_port: 3100
+      grpc_listen_port: 9095
+    common:
+      path_prefix: /loki
+      storage:
+        filesystem:
+          chunks_directory: /loki/chunks
+          rules_directory: /loki/rules
+      replication_factor: 1
+      ring:
+        kvstore:
+          store: inmemory
+    schema_config:
+      configs:
+        - from: 2020-10-24
+          store: boltdb-shipper
+          object_store: filesystem
+          schema: v11
+          index:
+            prefix: index_
+            period: 24h
+    limits_config:
+      allow_structured_metadata: false
+  tempo-config.yaml: |
+    server:
+      http_listen_port: 3200
+      grpc_listen_port: 9096
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: "0.0.0.0:4320" # [핵심수정] 4317에서 4320으로 변경하여 충돌 해결
+    ingester:
+      lifecycler:
+        ring:
+          replication_factor: 1
+    storage:
+      trace:
+        backend: local
+        local:
+          path: /tmp/tempo/blocks
+  prometheus-config.yaml: |
+    global:
+      scrape_interval: 15s
+    scrape_configs:
+      - job_name: 'otel-collector'
+        static_configs:
+          - targets: ['127.0.0.1:8889']
+  dashboards.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://localhost:9090
+        access: proxy
+        isDefault: true
+      - name: Loki
+        type: loki
+        url: http://localhost:3100
+        access: proxy
+      - name: Tempo
+        type: tempo
+        url: http://localhost:3200
+        access: proxy
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monitoring-stack
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: monitoring-stack
+  template:
+    metadata:
+      labels:
+        app: monitoring-stack
+    spec:
+      containers:
+      - name: grafana
+        image: grafana/grafana:latest
+        ports: [{containerPort: 3000}]
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/grafana/provisioning/datasources/dashboards.yaml
+          subPath: dashboards.yaml
+      - name: prometheus
+        image: prom/prometheus:latest
+        args: ["--config.file=/etc/prometheus/prometheus-config.yaml"]
+        ports: [{containerPort: 9090}]
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/prometheus/prometheus-config.yaml
+          subPath: prometheus-config.yaml
+      - name: loki
+        image: grafana/loki:latest
+        args: ["-config.file=/etc/loki/loki-config.yaml"]
+        ports: [{containerPort: 3100}]
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/loki/loki-config.yaml
+          subPath: loki-config.yaml
+      - name: tempo
+        image: grafana/tempo:latest
+        args: ["-config.file=/etc/tempo/tempo-config.yaml"]
+        ports: [{containerPort: 3200}]
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/tempo/tempo-config.yaml
+          subPath: tempo-config.yaml
+      - name: otel-collector
+        image: otel/opentelemetry-collector-contrib:latest
+        args: ["--config=/etc/otel/otel-config.yaml"]
+        ports:
+          - containerPort: 4317
+          - containerPort: 8889
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/otel/otel-config.yaml
+          subPath: otel-config.yaml
+      volumes:
+      - name: config-volume
+        configMap:
+          name: monitoring-configs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: monitoring-service
+  namespace: monitoring
+spec:
+  type: NodePort
+  ports:
+    - name: grafana
+      port: 3000
+      targetPort: 3000
+      nodePort: 32000
+    - name: otel-otlp
+      port: 4317
+      targetPort: 4317
+      nodePort: 30417
+  selector:
+    app: monitoring-stack
