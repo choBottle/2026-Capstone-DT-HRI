@@ -46,28 +46,27 @@ wine start 파일명.exe
 import dearpygui.dearpygui as dpg
 
 def button_callback(sender, app_data):
-    print(f"버튼이 클릭되었습니다! (Sender: {sender})")
-    dpg.set_value("text_output", "상태: 버튼 클릭됨! (터미널 확인)")
+    print(f"Button Clicked! (Sender: {sender})")
+    dpg.set_value("text_output", "Status: Button Clicked! (Check Terminal)")
 
 dpg.create_context()
 
 with dpg.window(label="System Check Window", width=580, height=380, pos=[10, 10]):
-    dpg.add_text("PyGui 화면 테스트", color=(0, 255, 0))
+    dpg.add_text("PyGui Display Test", color=(0, 255, 0))
     dpg.add_separator()
-    dpg.add_text("이 창이 보인다면 X11 Forwarding이 정상 작동 중입니다.")
+    dpg.add_text("If you see this window, X11 Forwarding is working correctly.")
     dpg.add_spacer(height=10)
     
-    dpg.add_button(label="테스트 버튼 (클릭해보세요)", callback=button_callback)
+    dpg.add_button(label="Test Button (Click Me)", callback=button_callback)
     dpg.add_spacer(height=10)
     
-    dpg.add_text("대기 중...", tag="text_output", color=(255, 255, 0))
+    dpg.add_text("Waiting...", tag="text_output", color=(255, 255, 0))
 
 dpg.create_viewport(title='MobaXterm PyGui Test', width=600, height=400)
 dpg.setup_dearpygui()
 dpg.show_viewport()
 dpg.start_dearpygui()
 dpg.destroy_context()
-
 ```
 
 ---
@@ -152,7 +151,7 @@ python3 test_gui.py
 
 3. **검증 포인트 (Check Point)**
 * **성공:** 약 1~3초 뒤 PC 화면에 **"System Check Window"**라는 회색 창이 팝업으로 뜹니다.
-* **기능 확인:** 창 안의 "테스트 버튼"을 누르면 터미널에 메시지가 출력되는지 확인하세요.
+* **기능 확인:** 창 안의 "Test Button"을 누르면 터미널에 메시지가 출력되는지 확인하세요.
 
 
 
@@ -160,14 +159,27 @@ python3 test_gui.py
 
 ## [문제 해결 (Troubleshooting)]
 
-* **Q. "Glfw Error: The DISPLAY environment variable is missing" 에러 발생**
-* **원인:** MobaXterm의 X11-Forwarding 기능이 꺼져있거나 세션이 꼬인 경우.
-* **해결:**
-1. MobaXterm 접속 설정(Session Settings)에서 `X11-Forwarding` 체크 여부 확인.
-2. 접속을 종료(`exit`)하고 MobaXterm을 껐다가 다시 실행하여 재접속.
+### Q1. "Glfw Error: The DISPLAY environment variable is missing" 에러 발생
+> **원인:** MobaXterm의 X11-Forwarding 기능이 꺼져있거나 세션이 꼬인 경우입니다.
+>
+> **해결:**
+> 1. MobaXterm 접속 설정(Session Settings)에서 **`X11-Forwarding`** 체크 여부를 확인하세요.
+> 2. 접속을 종료(`exit`)하고 MobaXterm을 완전히 껐다가 다시 실행하여 재접속하세요.
 
+---
 
+### Q2. 창이 너무 작거나 검은 화면만 나와요.
+> **해결:** MobaXterm이 화면 정보를 늦게 받아서 그럴 수 있습니다.
+> 창을 마우스로 잡고 **살짝 흔들거나 크기를 조절**하면 화면이 정상적으로 나타납니다.
 
+---
 
-* **Q. 창이 너무 작거나 검은 화면만 나와요.**
-* **해결:** MobaXterm이 렌더링 정보를 늦게 받아서 그럴 수 있습니다. 창을 마우스로 잡고 살짝 흔들거나 크기를 조절하면 화면이 나타납니다.
+### Q3. 한글이 네모(□□□)로 나오거나 깨져요.
+> **원인:** 라즈베리파이에 한글 폰트가 설치되어 있지 않아서 발생하는 문제입니다.
+>
+> **해결:** 터미널에 아래 명령어를 입력하여 한글 폰트(나눔 폰트)를 설치하면 해결됩니다.
+> ```bash
+> sudo apt update
+> sudo apt install fonts-nanum -y
+> ```
+> *(설치 완료 후 프로그램을 다시 실행해 보세요.)*
