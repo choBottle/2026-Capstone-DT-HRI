@@ -1,6 +1,6 @@
 # PyGui 접속 가이드
 
-## [MobaXterm 설치 및 실행]
+## [MobaXterm 설치 및 실행] - Windows 한정
 
 ### 1. Windows에서 설치 시
 
@@ -9,21 +9,19 @@
 
 ### 2. Linux(Ubuntu)에서 설치 시
 
-1. **Ubuntu Software**에서 **Wine** 설치
-2. [MobaXterm Download Page](https://mobaxterm.mobatek.net/download-home-edition.html) 링크로 들어가 **Portable edition** 다운로드
-3. 설치 후 압축 풀기
-4. `cmd`(터미널)에서 압축을 푼 `.exe` 파일이 있는 폴더 접근
-5. 아래 명령어 실행
+별도의 프로그램 설치가 필요 없습니다. 기본 터미널을 사용하세요.
+
+명령어 입력: (반드시 대문자 -X 옵션을 포함해야 합니다)
+
+예시
 ```bash
-wine start 파일명.exe
-
+ssh -X physical@pi2.local
 ```
-
-
+비밀번호를 입력하면 바로 접속됩니다. [PyGui 세팅] 단계로 넘어가세요.
 
 ---
 
-## [MobaXterm 세팅]
+## [MobaXterm 세팅] - Windows 한정
 
 1. 좌측 상단 **Session** → 좌측 상단 **SSH** 탭 클릭
 2. **Remote host**에 라즈베리파이의 IP 주소 입력
