@@ -1,0 +1,9 @@
+capabilities:
+  - name: "VISION_DETECTION"
+    image: "jny123/vision-worker:latest"
+    triggers: ["사람", "장애물", "선"]
+    params: ["target"]
+  - name: "PRECISE_MOVE"
+    image: "jny123/nav-worker:latest"
+    triggers: ["이동", "후진", "목적지"]
+    params: ["x", "y", "speed"]

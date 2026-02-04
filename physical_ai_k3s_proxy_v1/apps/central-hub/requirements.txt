@@ -1,0 +1,5 @@
+flask
+kubernetes
+pyyaml
+redis
+# LLM은 나중에 추가
