@@ -1,22 +1,30 @@
-FROM python:3.9-slim
+FROM python:3.11-slim
 
-# 1. 파이썬 로그가 버퍼링 없이 즉시 출력되도록 설정 (Loki 실시간 로그 확인용)
+# 인터랙티브 모드 방지 및 로그 즉시 출력을 위한 설정
+ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
-# 2. OTEL이 라이브러리를 찾을 수 있도록 환경 변수 기본값 설정 (필요 시 YAML에서 덮어쓰기 가능)
-ENV OTEL_SERVICE_NAME=central-hub
+
+# 필수 시스템 라이브러리 (K8s API 및 Python 패키지 빌드용)
+RUN apt-get update && apt-get install -y \
+    gcc \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# 3. 라이브러리 설치 (레이어 캐싱 활용)
+# 1. 의존성 파일 복사 및 설치
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# 4. 소스 코드 및 템플릿 복사
-COPY main.py .
-# manifests 폴더 구조 유지 (base, templates 등)
-COPY manifests/ ./manifests/
+# 2. 소스 코드 및 템플릿/정책 파일 복사
+# 정책 파일(mission_policy.yaml)이 있어야 LLM이 정확한 가이드를 읽습니다.
+COPY mission_orchestrator.py .
+COPY mission_policy.yaml .
+COPY templates/ ./templates/
 
-# 5. Flask 기본 포트 및 OTEL 데이터 수집 포트 노출
+# Flask API 포트 개방
 EXPOSE 5000
 
-CMD ["python", "main.py"]
+# 실행 시 API_KEY와 REDIS_HOST는 K8s Deployment의 env에서 주입받음
+CMD ["python", "mission_orchestrator.py"]

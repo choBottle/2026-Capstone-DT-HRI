@@ -1,0 +1,45 @@
+# 1. ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: central-hub-sa
+  namespace: default
+
+---
+
+# 2. ClusterRole: 미션 파드 생명주기 관리 및 모니터링 권한
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: central-hub-manager-role
+rules:
+  # 파드 관리 및 상태 추적 (배터리 부족 시 강제 종료 로직 포함)
+- apiGroups: [""]
+  resources: ["pods", "pods/status", "pods/log"] 
+  verbs: ["get", "list", "watch", "create", "delete", "patch"]
+
+  # 노드 조회 (Detector 연동 및 노드별 자원 확인용)
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+
+  # 설정 조회 및 이벤트 모니터링 (파드가 왜 죽었는지, 생성이 왜 안되는지 로그 확인용)
+- apiGroups: [""]
+  resources: ["configmaps", "services", "events"]
+  verbs: ["get", "list", "watch"]
+
+---
+
+# 3. ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: central-hub-manager-binding
+subjects:
+- kind: ServiceAccount
+  name: central-hub-sa
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  name: central-hub-manager-role
+  apiGroup: rbac.authorization.k8s.io

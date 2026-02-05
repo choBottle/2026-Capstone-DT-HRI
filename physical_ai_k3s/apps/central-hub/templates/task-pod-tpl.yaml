@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: task-template
+  labels:
+    app: mission-worker
+spec:
+  restartPolicy: Never
+  nodeSelector:
+    kubernetes.io/hostname: pi1 # 기본값, 오케스트레이터가 수정함
+  containers:
+  - name: worker
+    image: python:3.9-slim
+    command: ["python", "-c"]
+    args: ["print('No code injected')"]
+    env:
+    - name: REDIS_HOST
+      value: "redis-service"

@@ -1,0 +1,44 @@
+# robot-detector/manifests/detector-daemonset.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: robot-detector
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: robot-detector
+  template:
+    metadata:
+      labels:
+        app: robot-detector
+    spec:
+      # 1. 라즈베리파이 노드(pi1)에서만 탐지기가 실행되도록 제한
+      nodeSelector:
+        kubernetes.io/hostname: pi1
+      
+      # 2. 로봇의 UDP 브로드캐스트를 직접 수신하기 위해 호스트 네트워크 사용
+      hostNetwork: true 
+
+      # 3. [핵심 수정] 호스트 네트워크 사용 시에도 K8s 내부 DNS(CoreDNS)를 사용하도록 설정
+      # 이 설정이 있어야 'central-hub'라는 주소를 해석할 수 있습니다.
+      dnsPolicy: ClusterFirstWithHostNet
+
+      containers:
+      - name: detector
+        image: jny123/robot-detector:latest
+        env:
+        - name: NODE_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: HUB_URL
+          # 내부 DNS 해석이 가능해졌으므로 아래 주소를 그대로 사용합니다.
+          value: "http://central-hub.default.svc.cluster.local:5000/detect"
+        resources:
+          limits:
+            cpu: "100m"
+            memory: "64Mi"
+          requests:
+            cpu: "50m"
+            memory: "32Mi"

@@ -1,0 +1,61 @@
+system_name: RoboMaster_EP01_Mission_Policy_v15
+description: "v14 Proxy 기반: 통합 센서 구독 및 비전 엔진 대응 가이드라인"
+
+# [1] 기본 통신 설정 (기존과 동일)
+runtime_environment:
+  redis_host: "redis-service"
+  redis_port: 6379
+  robot_sn_source: "os.getenv('ROBOT_SN', 'ep01')"
+  keys:
+    command_queue: "robot:{ROBOT_SN}:commands"
+    status_hash: "robot:{ROBOT_SN}:status"
+
+# [2] 확장된 명령어 세트 (LPUSH 전송용)
+commands:
+  sensor_control:
+    target: "sensor"
+    actions: ["SUB_ALL", "UNSUB"]
+    note: "미션 시작 시 SUB_ALL을 전송하여 배터리, 위치, 아머(hit_event), 속도, IMU, ESC를 일괄 활성화함"
+  
+  vision_control:
+    target: "vision"
+    actions: ["START", "STOP"]
+    params: {type: "marker/line", color: "blue/red/green (line전용)"}
+
+  chassis:
+    actions: ["MOVE", "ROTATE"]
+    params: 
+      MOVE: {x: "float(m)", y: "float(m)", speed: "0.1~1.0"}
+      ROTATE: {yaw: "int(deg)", v_speed: "int(deg/s)"}
+      
+  actuator:
+    actions: ["ARM_MOVE", "GRIPPER"]
+    params:
+      ARM_MOVE: {arm_x: "int(-100~100)", arm_y: "int(-100~100)"}
+      GRIPPER: {grip: "open/close", grip_p: "1~100 (Power)"}
+
+  led:
+    target: "led"
+    actions: ["SET"]
+    params: {r: "0-255", g: "0-255", b: "0-255", eff: "on/off/blink"}
+
+# [3] 최적화된 데이터 읽기 (v14 반영)
+status_data_mapping:
+  battery: "r.hget(status_key, 'battery') -> {'soc': int}"
+  position: "r.hget(status_key, 'position') -> {'x': float, 'y': float}"
+  armor_hit: "r.hget(status_key, 'armor_hit') -> {'id': int, 'type': int} (충격 시에만 업데이트됨)"
+  vision_marker: "r.hget(status_key, 'marker') -> {'id': int, 'pos': [x, y], 'size': float}"
+  vision_line: "r.hget(status_key, 'line') -> {'x': float, 'angle': float}"
+
+# [4] 코드 생성 엄격 규칙
+coding_rules:
+  1: "import os, redis, json, time 포함"
+  2: "미션 시작 즉시 SUB_ALL 명령을 최우선으로 전송할 것"
+  3: "상태 데이터는 반드시 json.loads()로 파싱 후 사용"
+  4: "while True 루프 내부 time.sleep(0.1~0.2) 권장 (반응성 향상)"
+  5: "비전 미션 시 반드시 vision START 명령을 선행할 것"
+
+# [5] 안전 수칙
+safety_constraints:
+  - "Link Proxy는 변화 감지 시에만 Redis를 업데이트하므로, None 체크 필수"
+  - "아머 히트 감지 시 즉시 led SET(Red) 피드백 권장"

@@ -1,0 +1,8 @@
+# 핵심 제어 및 통신
+robomaster
+redis
+setuptools==58.2.0
+
+# 수치 계산 및 비전 (Link 내부에서 비전 처리 기능을 호출하기 위해 필요)
+numpy==1.23.5
+opencv-python-headless
