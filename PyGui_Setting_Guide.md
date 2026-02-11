@@ -104,6 +104,49 @@ pip install dearpygui
 
 ```
 
+### 1-2. pip install dearpygui가 안된다면?
+
+1. 빌드 필수 패키지 설치
+
+컴파일러, 파이썬 개발 헤더, OpenGL 관련 라이브러리가 필요합니다.
+
+```bash
+sudo apt update
+sudo apt install -y cmake build-essential git
+sudo apt install -y python3-dev libpython3-dev
+sudo apt install -y libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
+sudo apt install -y libgl1-mesa-dev libglu1-mesa-dev  # 핵심: 그래픽 헤더
+
+```
+
+2. 가상환경 재생성 (Python 3.13)
+
+```bash
+python3 -m venv robot_env
+source robot_env/bin/activate
+
+```
+
+3. Dear PyGui 소스 코드 다운로드 및 빌드
+
+```bash
+# 소스 코드 클론
+git clone --recursive https://github.com/hoffstadt/DearPyGui.git
+cd DearPyGui
+
+# 빌드 및 설치 (약 15~20분 소요)
+pip install .
+
+```
+
+4. 추가 라이브러리 설치
+
+```bash
+cd ..
+sudo apt install -y libgl1-mesa-dev libglu1-mesa-dev
+pip install pyserial
+
+```
 
 
 ---
@@ -181,3 +224,4 @@ python3 test_gui.py
 > sudo apt install fonts-nanum -y
 > ```
 > *(설치 완료 후 프로그램을 다시 실행해 보세요.)*
+
